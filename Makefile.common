@@ -1,0 +1,13 @@
+project_source_files ?= \
+    animation.cc \
+    sprite.cc \
+    battleship.cc \
+    gameevent.cc \
+    inputhandler.cc \
+    page.cc \
+   	pagemanager.cc \
+		ship.cc \
+		shipmanager.cc \
+		state.cc
+
+PROJECT_SOURCE_FILES ?= $(project_source_files)
