@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2021 crton
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "common.hh"
 
 namespace bship {
@@ -7,6 +24,16 @@ namespace bship {
 #ifdef __ANDROID__
     this->androidShipOrientation = orientationUp;
 #endif
+    for (int b = 0; b < 2; b++)
+    {
+      for (int x = 0; x < NUMCELLS; x++)
+      {
+        for (int y = 0; y < NUMCELLS; y++)
+        {
+          this->shadowBoard[x][y][b] = false;
+        }
+      }
+    }
   }
   
   // the origin of a ship is at the bottom
@@ -28,7 +55,7 @@ namespace bship {
       positions[11]; // fifth y
     }
     */
-    int size = type != shipDestroyer ? (int)type - 1 : 1;
+    int size = type != shipDestroyer ? (int)type : 1;
     int endX = orientation == orientationRight ? x+size :
                orientation == orientationLeft  ? x-size : 
                orientation != orientationRight && orientation != orientationLeft ? x : 666;
@@ -36,6 +63,55 @@ namespace bship {
                orientation == orientationDown  ? y+size : 
                orientation != orientationUp && orientation != orientationDown ? y : 666;
     printf("checking wether boat with size %d and origin %d,%d and end %d,%d fits on board\n",size,x,y,endX,endY); 
+    if (orientation == orientationUp)
+    {
+      for (int sby = y; sby > endY; sby--)
+      {
+        printf("checking intersection at %d, %d\n",x,sby);
+        if (this->shadowBoard[x][sby][static_cast<int>(gameState.us)] == true)
+        {
+          printf("intersection at %d, %d\n",x,sby);
+          return false;
+        }
+      }
+    }
+    else if (orientation == orientationDown)
+    {
+      for (int sby = y; sby < endY; sby++)
+      {
+        printf("checking intersection at %d, %d\n",x,sby);
+        if (this->shadowBoard[x][sby][static_cast<int>(gameState.us)] == true)
+        {
+          printf("intersection at %d, %d\n",x,sby);
+          return false;
+        }
+      }
+    }
+    else if (orientation == orientationRight)
+    {
+      for (int sbx = x; sbx < endX; sbx++)
+      {
+        printf("checking intersection at %d, %d\n",sbx,y);
+        if (this->shadowBoard[sbx][y][static_cast<int>(gameState.us)] == true)
+        {
+          printf("intersection at %d, %d\n",sbx,y);
+          return false;
+        }
+      }     
+    }
+    else if (orientation == orientationLeft)
+    {
+      for (int sbx = x; sbx > endX; sbx--)
+      {
+        printf("checking intersection at %d, %d\n",sbx,y);
+        if (this->shadowBoard[sbx][y][static_cast<int>(gameState.us)] == true)
+        {
+          printf("intersection at %d, %d\n",sbx,y);
+          return false;
+        }
+      }
+    }
+    size--;
     if (x >= 0 && x < NUMCELLS)
     {
       if (y >= 0 && y < NUMCELLS)
@@ -123,7 +199,15 @@ namespace bship {
     {
       return false;
     }
-    if (this->canPlace(type,x-1,y-1,orientation))
+    int size = type != shipDestroyer ? (int)type : 1;
+    int endX = orientation == orientationRight ? x+size :
+               orientation == orientationLeft  ? x-size : 
+               orientation != orientationRight && orientation != orientationLeft ? x : 666;
+    int endY = orientation == orientationUp    ? y-size :
+               orientation == orientationDown  ? y+size : 
+               orientation != orientationUp && orientation != orientationDown ? y : 666;
+
+    if (this->canPlace(type,x,y,orientation))
     {
 #ifdef __ANDROID__
       this->ships.push_back(std::make_unique<Ship>(type,x,y,this->androidShipOrientation));
@@ -152,6 +236,39 @@ namespace bship {
           this->hasDestroyer = true;
           break;
       }
+      if (orientation == orientationUp)
+      {
+        for (int sby = y; sby > endY; sby--)
+        {
+          printf("marking cell %d, %d\n",x,sby);
+          this->shadowBoard[x][sby][static_cast<int>(gameState.us)] = true;
+        }
+      }
+      else if (orientation == orientationDown)
+      {
+        for (int sby = y; sby < endY; sby++)
+        {
+          printf("marking cell %d, %d\n",x,sby);
+          this->shadowBoard[x][sby][static_cast<int>(gameState.us)] = true;
+        }
+      }
+      else if (orientation == orientationRight)
+      {
+        for (int sbx = x; sbx < endX; sbx++)
+        {
+          printf("marking cell %d, %d\n",sbx,y);
+          this->shadowBoard[sbx][y][static_cast<int>(gameState.us)] = true;
+        }     
+      }
+      else if (orientation == orientationLeft)
+      {
+        for (int sbx = x; sbx > endX; sbx--)
+        {
+          printf("marking cell %d, %d\n",sbx,y);
+          this->shadowBoard[sbx][y][static_cast<int>(gameState.us)] = true;
+        }
+      }
+      // TODO: send Ship packet to NetSpooler protocol handler
       if (this->hasCarrier && this->hasBattleship && this->hasSubmarine && this->hasCruiser && this->hasDestroyer)
       {
         gameState.allPlaced = true;

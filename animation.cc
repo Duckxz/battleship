@@ -20,6 +20,7 @@ namespace bship {
     UnloadTexture(this->_tex);
   }
 
+  /// this function ticks the animation, updating it's timings so that it draws at the required FPS
   void Animation::tickAnim()
   {
     // check this first to prevent unnecessary calculations
@@ -36,7 +37,7 @@ namespace bship {
     this->currentFrame = this->currentFrame >= this->frameCount ? 0 : this->currentFrame + 1;
   }
 
-
+  /// render the animation's current frame to the screen
   void Animation::render()
   {
     //std::cout << "drawing frame " << this->current_frame << " of anim '" << this->name << "' at (" << x << ", " << y << ") with rec [" << 0 << ", " << 8*current_frame << ", " << 8 << ", " << 8 << "]\n";

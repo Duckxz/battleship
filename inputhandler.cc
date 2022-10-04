@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2021 crton
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "common.hh"
 
 InputHandler::InputHandler(int buffMax)
@@ -20,14 +37,16 @@ InputHandler::~InputHandler()
   }
 }
 
+/// method to check wether the mouse has been pressed and where 
 bool InputHandler::pollMouse(MouseButton button, int* resX, int* resY)
 {
   int cursorX,cursorY;
   *resX = 0;
   *resY = 0;
 #ifdef __ANDROID__
-  cursorX = GetTouchX();
-  cursorY = GetTouchY();
+  Vector2 touchPosition = {0,0};
+  cursorX = static_cast<int>(touchPosition.x);
+  cursorY = static_cast<int>(touchPosition.y);
 #else
   cursorX = GetMouseX();
   cursorY = GetMouseY();
@@ -45,7 +64,7 @@ bool InputHandler::pollMouse(MouseButton button, int* resX, int* resY)
 #ifdef __EMSCRIPTEN__ // very ugly but it's the only way
       IsMouseButtonDown(button)
 #elif defined(__ANDROID__)
-      GetGestureDetected() == GESTURE_TAP
+      GetGestureDetected() != GESTURE_NONE
 #else
       IsMouseButtonPressed(button)
 #endif
@@ -54,7 +73,7 @@ bool InputHandler::pollMouse(MouseButton button, int* resX, int* resY)
 #ifdef __EMSCRIPTEN__
       this->lastClick = std::chrono::high_resolution_clock::now();
 #endif
-      printf("click at %d , %d\n",cursorX,cursorY);
+      //printf("click at %d , %d\n",cursorX,cursorY);
       *resX = cursorX;
       *resY = cursorY;
       return true;
@@ -65,14 +84,16 @@ bool InputHandler::pollMouse(MouseButton button, int* resX, int* resY)
     }
 }
 
+
+/// method to get the last key pressed. it will be returned and appended into the buffer
 KeyboardKey InputHandler::poll()
 {
   KeyboardKey lastKey = (KeyboardKey)GetKeyPressed();
   char lastChar = GetCharPressed();
-#ifdef __ANDROID__
+/*#ifdef __ANDROID__
   __android_log_print(ANDROID_LOG_VERBOSE,"InputHandler:Poll","lastKey: %d",lastKey);
   __android_log_print(ANDROID_LOG_VERBOSE,"InputHandler::Poll","lastChar: %c",lastChar);
-#endif
+#endif*/
   if (this->_buffIdx < this->buffMax && lastKey != KEY_DELETE && lastKey != KEY_NULL && lastChar != 0)
   {
     this->buff[this->_buffIdx] = lastChar;
@@ -94,6 +115,7 @@ KeyboardKey InputHandler::poll()
 ibox::ibox(IboxType type, Rectangle r, std::function<void()> lam) : type(type), spot(r), click(lam)
 {}
 
+/// method to check all clickable boxes wether they have been pressed
 void InputHandler::checkIboxes()
 {
   for (ibox* inputBox: this->iboxes)
@@ -103,7 +125,7 @@ void InputHandler::checkIboxes()
     bool mouseClicked = gameState.inputHandler.pollMouse(MOUSE_BUTTON_LEFT,&cursorX,&cursorY);
     if (mouseClicked)
     {
-      printf("click! checking wether %d,%d intersects with rectangle at %f, %f with %f,%f as dimensions\n",cursorX,cursorY,inputBox->spot.x,inputBox->spot.y,inputBox->spot.width,inputBox->spot.height);
+      //printf("click! checking wether %d,%d intersects with rectangle at %f, %f with %f,%f as dimensions\n",cursorX,cursorY,inputBox->spot.x,inputBox->spot.y,inputBox->spot.width,inputBox->spot.height);
     }
     if (mouseClicked && CheckCollisionPointRec((Vector2){(float)cursorX,(float)cursorY},inputBox->spot))
     {
@@ -118,6 +140,7 @@ void InputHandler::checkIboxes()
 
 // i tested this extensively and it does *not* work, you can't use the soft keyboard in a NativeActivity
 #ifdef __ANDROID__
+/// a method to try and pull up android's soft keyboard inside a NativeActivity, although it seemed promising it doesn't work.
 void InputHandler::pullUpKeyboard(bool should) {
   /*if (!should && this->isSoftKeyboardUp)
     {

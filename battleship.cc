@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2021 crton
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "common.hh"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -11,6 +28,7 @@ Animation* explosion;
 Vector2 positionLUT[NUMCELLS][NUMCELLS][3];
 
 #ifdef __EMSCRIPTEN__
+/// main loop function, meant for emscripten
 void drawEverything()
 {
   Camera2D cam{};
@@ -27,6 +45,8 @@ void drawEverything()
 }
 #endif
 
+
+/// computes a 2d array of cells for both boards so that we can correspond 0-9 cell coordinates to screen pixel coordinates
 void computePositionLUT(int offsetX,int offsetY)
 {
   for (int x = 0; x < NUMCELLS; x++)
@@ -53,13 +73,13 @@ int main()
 #endif
   InitWindow(/*(size*size)*2,(size*size)*2*/670,580,"Battleship");
   w = GetScreenWidth();
-	h = GetScreenHeight();
-	offsetX = (w / 2) - (size*NUMCELLS/2);
-	offsetY = (h / 2);
-	if(!IsWindowReady()) {
-		fprintf(stderr,"Failed to create raylib window\n");
-		return -1;		
-	}
+  h = GetScreenHeight();
+  offsetX = (w / 2) - (size*NUMCELLS/2);
+  offsetY = (h / 2);
+  if(!IsWindowReady()) {
+    fprintf(stderr,"Failed to create raylib window\n");
+    return -1;		
+  }
   SetExitKey(KEY_NULL);
 #ifdef __ANDROID__
   gameState.app = GetAndroidApp();
@@ -80,7 +100,7 @@ int main()
         {
           if (/*gameState.connected && gameState.opponentConnected && !gameState.allPlaced &&*/ gameState.shipManager.hasSelected && gameState.shipManager.canPlace(gameState.shipManager.selectedShip == shipDestroyer ? shipSubmarine : gameState.shipManager.selectedShip,x,y,gameState.shipManager.orientationWanted))
           {
-            if (gameState.shipManager.place(gameState.shipManager.selectedShip,x+1,y+1,gameState.shipManager.orientationWanted))
+            if (gameState.shipManager.place(gameState.shipManager.selectedShip,x,y,gameState.shipManager.orientationWanted))
             {
               gameState.shipManager.hasSelected = false;
               pageManager.toggle("boat_under_cursor",false);
@@ -106,7 +126,7 @@ int main()
         {
           if (/*gameState.connected && gameState.opponentConnected && !gameState.allPlaced &&*/ gameState.shipManager.hasSelected && gameState.shipManager.canPlace(gameState.shipManager.selectedShip == shipDestroyer ? shipSubmarine : gameState.shipManager.selectedShip,x,y,gameState.shipManager.orientationWanted))
           {
-            if (gameState.shipManager.place(gameState.shipManager.selectedShip,x+1,y+1,gameState.shipManager.orientationWanted))
+            if (gameState.shipManager.place(gameState.shipManager.selectedShip,x,y,gameState.shipManager.orientationWanted))
             {
               gameState.shipManager.hasSelected = false;
               pageManager.toggle("boat_under_cursor",false);
@@ -149,6 +169,10 @@ int main()
   explosion->y = positionLUT[0][0][0].y-explosion->height/2;
   ibox* selectCarrier = new ibox{iboxUIButton,(Rectangle){positionLUT[9][3][1].x+45-24/2,positionLUT[9][3][1].y-18/2,18.0f,static_cast<float>(22*(int)shipCarrier)},[]()
   {
+    if (gameState.allPlaced)
+    {
+      return;
+    }
     gameState.shipManager.selectedShip = shipCarrier;
     if (!gameState.shipManager.hasSelected)
     {
@@ -158,6 +182,10 @@ int main()
   }};
   ibox* selectBattleship = new ibox{iboxUIButton,(Rectangle){positionLUT[9][3][1].x+45+22-24/2,positionLUT[9][3][1].y-18/2,18.0f,static_cast<float>(22*(int)shipBattleship)},[]()
   {
+    if (gameState.allPlaced)
+    {
+      return;
+    }
     gameState.shipManager.selectedShip = shipBattleship;
     if (!gameState.shipManager.hasSelected)
     {
@@ -167,6 +195,10 @@ int main()
   }};
   ibox* selectCruiser = new ibox{iboxUIButton,(Rectangle){positionLUT[9][3][1].x+45+22*2-24/2,positionLUT[9][3][1].y-18/2,18.0f,static_cast<float>(22*(int)shipCruiser)},[]()
   {
+    if (gameState.allPlaced)
+    {
+      return;
+    }
     gameState.shipManager.selectedShip = shipCruiser;
     if (!gameState.shipManager.hasSelected)
     {
@@ -176,6 +208,10 @@ int main()
   }};
   ibox* selectSubmarine = new ibox{iboxUIButton,(Rectangle){positionLUT[9][3][1].x+45+22*3-24/2,positionLUT[9][3][1].y-18/2,18.0f,static_cast<float>(22*(int)shipSubmarine)},[]()
   {
+    if (gameState.allPlaced)
+    {
+      return;
+    }
     gameState.shipManager.selectedShip = shipSubmarine;
     if (!gameState.shipManager.hasSelected)
     {
@@ -185,6 +221,10 @@ int main()
   }};
   ibox* selectDestroyer = new ibox{iboxUIButton,(Rectangle){positionLUT[9][3][1].x+45+22*4-24/2,positionLUT[9][3][1].y-18/2,18.0f,static_cast<float>(22*2)},[]()
   {
+    if (gameState.allPlaced)
+    {
+      return;
+    }
     gameState.shipManager.selectedShip = shipDestroyer; // because enums
     if (!gameState.shipManager.hasSelected)
     {
@@ -260,13 +300,40 @@ int main()
 
   pageManager.make("boats_for_placing",true,true,[]()
   {
-    renderArbitrayBoat(shipCarrier,positionLUT[9][3][1].x+45,positionLUT[9][3][1].y,orientationDown);
-    renderArbitrayBoat(shipBattleship,positionLUT[9][3][1].x+45+22,positionLUT[9][3][1].y,orientationDown);
-    renderArbitrayBoat(shipCruiser,positionLUT[9][3][1].x+45+22*2,positionLUT[9][3][1].y,orientationDown);
-    renderArbitrayBoat(shipSubmarine,positionLUT[9][3][1].x+45+22*3,positionLUT[9][3][1].y,orientationDown);
-    renderArbitrayBoat(shipSubmarine,positionLUT[9][3][1].x+45+22*4,positionLUT[9][3][1].y,orientationDown);
+    if (!gameState.allPlaced)
+    {
+      renderArbitrayBoat(shipCarrier,positionLUT[9][3][1].x+45,positionLUT[9][3][1].y,orientationDown);
+      renderArbitrayBoat(shipBattleship,positionLUT[9][3][1].x+45+22,positionLUT[9][3][1].y,orientationDown);
+      renderArbitrayBoat(shipCruiser,positionLUT[9][3][1].x+45+22*2,positionLUT[9][3][1].y,orientationDown);
+      renderArbitrayBoat(shipSubmarine,positionLUT[9][3][1].x+45+22*3,positionLUT[9][3][1].y,orientationDown);
+      renderArbitrayBoat(shipSubmarine,positionLUT[9][3][1].x+45+22*4,positionLUT[9][3][1].y,orientationDown);
+    }
+    else
+    {
+      pageManager.toggle("boats_for_placing",false);
+    }
   });
 
+  pageManager.make("debug_shadowboard",true,true,[]()
+  {
+    for (int sb = 0; sb < 2; sb++)
+    {
+      for (int x = 0; x < NUMCELLS; x++)
+      {
+        for (int y = 0; y < NUMCELLS; y++)
+        {
+          if (gameState.shipManager.shadowBoard[x][y][sb] == true)
+          {
+            DrawRectangle(positionLUT[x][y][sb].x-size/2,positionLUT[x][y][sb].y-size/2,20,20,RED);
+          }
+          else
+          {
+            DrawRectangle(positionLUT[x][y][sb].x-size/2,positionLUT[x][y][sb].y-size/2,20,20,GREEN);
+          }
+        }
+      }
+    }
+  });
 #ifdef __ANDROID__
   pageManager.make("android_draworientationbutton",true,true,[androidOrientationButton]()
   {
@@ -289,7 +356,7 @@ int main()
     }
   });
 
-  pageManager.make("debug_drawiboxes",true,true,[]()
+  pageManager.make("debug_drawiboxes",true,false,[]()
   {
     for (ibox* inputBox: gameState.inputHandler.iboxes)
     {
@@ -340,15 +407,15 @@ int main()
   pageManager.make("input_test",true,true,[w]()
   {
       KeyboardKey last = gameState.inputHandler.poll();
-#ifdef __ANDROID__
+/*#ifdef __ANDROID__
       gameState.inputHandler.pullUpKeyboard(true);
-#endif
+#endif*/
       if (last == KEY_ENTER)
       {
         pageManager.toggle("input");
-#ifdef __ANDROID__
+/*#ifdef __ANDROID__
         gameState.inputHandler.pullUpKeyboard(false);
-#endif
+#endif*/
       }
       
       DrawText(gameState.inputHandler.buff,w/2-25,5,14,GREEN);
@@ -366,16 +433,16 @@ int main()
   while (!WindowShouldClose())
   {
 #ifdef __EMSCRIPTEN__
-  drawEverything();
+    drawEverything();
 #else
     BeginDrawing();
-			BeginMode2D(cam);
-				pageManager.render();
+      BeginMode2D(cam);
+      pageManager.render();
         pageManager.renderUI();
-			EndMode2D();
-		EndDrawing();
+      EndMode2D();
+    EndDrawing();
 #endif
     gameState.inputHandler.checkIboxes();
-	}
-	return 0;
+  }
+  return 0;
 }

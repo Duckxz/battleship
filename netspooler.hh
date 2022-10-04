@@ -16,30 +16,11 @@
  */
 
 #pragma once
+
 #include "common.hh"
 
-namespace bship {
-  /// possible event ids
-  enum EventType {
-    eventAttack = 0,
-    eventHit,
-    eventMiss,
-    eventShipPlacement,
-    eventTurn,
-    eventPlayerJoin,
-    eventPlayerLeave,
-    eventPlayerWin,
-    eventConnectFailed,
-    eventReset,
-    eventFullReset
-  };
-
-  /// class to handle game events
-  class GameEvent {
-    public:
-      EventType type;
-      std::unique_ptr<Event> evt;
-      GameEvent(EventType, Event);
-      void handle();
-  };
+class NetSpooler
+{
+  NetSpooler()
 }
+
